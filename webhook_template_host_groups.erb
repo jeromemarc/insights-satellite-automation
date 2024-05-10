@@ -1,0 +1,49 @@
+<%#
+name: Webhook Template - Host Groups
+description: This template is used to define default content of payload for a webhook.
+snippet: false
+template_inputs:
+- name: hostname_name
+  required: false
+  input_type: user
+  advanced: false
+  value_type: plain
+  resource_type: Katello::ActivationKey
+  hidden_value: false
+- name: action
+  required: true
+  input_type: user
+  advanced: false
+  value_type: plain
+  resource_type: Katello::ActivationKey
+  hidden_value: false
+model: WebhookTemplate
+-%>
+<%=
+if @event_name.include? "hostgroup_"
+  payload({
+    "job_invocation": {
+        "inputs": { 
+            "action": @event_name, 
+            "hostgroup_name": @object.title
+        },
+        "job_template_id": 236,
+        "targeting_type": "static_query",
+        "search_query": "name = sat2.hcc-lab.com"
+        }
+  })
+elsif @event_name.include? "host_"
+  payload({
+    "job_invocation": {
+        "inputs": { 
+            "action": @event_name,
+            "insights_id": @object.facts["insights_id"],
+            "hostgroup_name": (if @object.hostgroup then @object.hostgroup.title else "" end)
+        },
+        "job_template_id": 236,
+        "targeting_type": "static_query",
+        "search_query": "name = sat2.hcc-lab.com"
+        }
+  })
+end
+-%>
