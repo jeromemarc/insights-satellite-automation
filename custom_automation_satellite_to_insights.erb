@@ -23,22 +23,6 @@ template_inputs:
   value_type: plain
   resource_type: Katello::ActivationKey
   hidden_value: false
-- name: client_id
-  required: false
-  input_type: user
-  advanced: false
-  value_type: plain
-  resource_type: Katello::ActivationKey
-  default: <client-id>
-  hidden_value: true
-- name: client_secret
-  required: false
-  input_type: user
-  advanced: false
-  value_type: plain
-  resource_type: Setting
-  default: <client-secret>
-  hidden_value: true
 model: JobTemplate
 job_category: Ansible Playbook
 provider_type: Ansible
@@ -59,11 +43,12 @@ locations:
       body_format: form-urlencoded
       status_code: 200
       body:
-        client_id: "<%= input('client_id') %>"
-        client_secret: "<%= input('client_secret') %>"
+        client_id: <%= host_param('hcc_client_id') %>
+        client_secret: <%= host_param('hcc_client_secret') %>
         grant_type: "client_credentials"
         scope: "api.console"
     register: token
+    no_log: True
   
 <% if input('action') == "hostgroup_created.event.foreman" || input('action') == "hostgroup_updated.event.foreman" -%>
 # Note that when a group name is changed in Satellite, host associations must be manually updated in Insights (or simply rename the group manually)
