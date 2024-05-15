@@ -12,9 +12,9 @@ if @event_name.include? "hostgroup_"
             "action": @event_name, 
             "hostgroup_name": @object.title
         },
-        "job_template_id": 236,
+        "job_template_id": <your job template id>,
         "targeting_type": "static_query",
-        "search_query": "name = sat2.hcc-lab.com"
+        "search_query": "name = <your satellite fqdn>"
         }
   })
 elsif @event_name.include? "host_"
@@ -25,9 +25,9 @@ elsif @event_name.include? "host_"
             "insights_id": @object.facts["insights_id"],
             "hostgroup_name": (if @object.hostgroup then @object.hostgroup.title else "" end)
         },
-        "job_template_id": 236,
+        "job_template_id": <your job template id>,
         "targeting_type": "static_query",
-        "search_query": "name = sat2.hcc-lab.com"
+        "search_query": "name = <your satellite fqdn>"
         }
   })
 end
