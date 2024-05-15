@@ -2,21 +2,6 @@
 name: Webhook Template - Host Groups
 description: This template is used to define default content of payload for a webhook.
 snippet: false
-template_inputs:
-- name: hostname_name
-  required: false
-  input_type: user
-  advanced: false
-  value_type: plain
-  resource_type: Katello::ActivationKey
-  hidden_value: false
-- name: action
-  required: true
-  input_type: user
-  advanced: false
-  value_type: plain
-  resource_type: Katello::ActivationKey
-  hidden_value: false
 model: WebhookTemplate
 -%>
 <%=
