@@ -178,16 +178,29 @@ locations:
     # set_fact:
     #        hosts: "{{ inventory }}" | json_query('results[*].json.results[*].{fqdn,id}') | join('\n') }}
 
-  - name: Check hosts
-    ansible.builtin.debug:
+#  - name: Check hosts
+#    ansible.builtin.debug:
             # msg: "{{ inventory | json_query('results[*].json.results[*].{fqdn: fqdn, id: id, infrastructure_type: system_profile.infrastructure_type, number_of_cpus: system_profile.number_of_cpus}') | to_json | from_json | json_query('[].join(`,`,[fqdn,id,infrastructure_type,number_of_cpus])') | flatten}}"
             #        msg: "{{ inventory | json_query('results[*].json.results[*].join(`,`,[fqdn,id,system_profile.infrastructure_type,system_profile.number_of_cpus|string,system_profile.number_of_sockets|string,system_profile.cores_per_socket|string,system_profile.os_release,system_profile,cloud_provider])') | flatten}}"
             #        msg: "{{ inventory | json_query('results[*].json.results[*].join(`,`,[fqdn,id,system_profile.infrastructure_type,system_profile.number_of_cpus|string])') | flatten}}"
-            msg: "{{ inventory | json_query('results[*].json.results[*].{fqdn: fqdn, id: id, infrastructure_type: system_profile.infrastructure_type, number_of_cpus: system_profile.number_of_cpus, number_of_sockets: system_profile.number_of_sockets, cores_per_socket: system_profile.cores_per_socket, os_release: system_profile.os_release, cloud_provider: system_profile.cloud_provider}') | flatten }}"
+#            msg: "{{ inventory | json_query('results[*].json.results[*].{fqdn: fqdn, id: id, infrastructure_type: system_profile.infrastructure_type, number_of_cpus: system_profile.number_of_cpus, number_of_sockets: system_profile.number_of_sockets, cores_per_socket: system_profile.cores_per_socket, os_release: system_profile.os_release, cloud_provider: system_profile.cloud_provider}') | flatten }}"
 
-  - name: Get hosts using JSON query
+#  - name: Get hosts using JSON query
+#    set_fact:
+#            hosts: "{{ inventory | json_query('results[*].json.results[*].{fqdn: fqdn, id: id, infrastructure_type: system_profile.infrastructure_type, number_of_cpus: system_profile.number_of_cpus, number_of_sockets: system_profile.number_of_sockets, cores_per_socket: system_profile.cores_per_socket, os_release: system_profile.os_release, cloud_provider: system_profile.cloud_provider}') | flatten }}"
+
+  - name: Get hosts from JSON
     set_fact:
-            hosts: "{{ inventory | json_query('results[*].json.results[*].{fqdn: fqdn, id: id, infrastructure_type: system_profile.infrastructure_type, number_of_cpus: system_profile.number_of_cpus, number_of_sockets: system_profile.number_of_sockets, cores_per_socket: system_profile.cores_per_socket, os_release: system_profile.os_release, cloud_provider: system_profile.cloud_provider}') | flatten }}"
+      hosts: "{{ hosts | default([]) + [{
+        'fqdn': item.fqdn | default(''),
+        'id': item.id | default(''), 
+        'infrastructure_type': item.system_profile.infrastructure_type | default(''), 
+        'number_of_cpus': item.system_profile.number_of_cpus | default(''), 
+        'number_of_sockets': item.system_profile.number_of_sockets | default(''), 
+        'cores_per_socket': item.system_profile.cores_per_socket | default(''), 
+        'os_release': item.system_profile.os_release | default(''), 
+        'cloud_provider': item.system_profile.cloud_provider | default('')}] }}"
+    loop: "{{ inventory.results | map(attribute='json.results') | flatten }}"
 
   - name: Convert JSON to CSV (create file and insert header)
     copy:
@@ -210,7 +223,7 @@ locations:
         subject: "Red Hat Insights reports from {{ ansible_hostname }}"
         body: "Reports from Red Hat Insights generated {{ ansible_date_time.date }}"
         to: "{{ smtp_username }}"
-        from: "{{ smtp_username }"
+        from: "{{ smtp_username }}"
         attach: [ "{{ csv_advisor_hits_filename }}", "{{ csv_patch_advisories_filename }}", "{{ csv_patch_systems_filename }}", "{{ csv_vulnerability_vulnerabilities_filename }}", "{{ csv_inventory_filename }}" ]
         charset: us-ascii
     when: email is defined
