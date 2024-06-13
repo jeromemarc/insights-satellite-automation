@@ -170,24 +170,8 @@ locations:
             headers:
                     Accept: "application/json"
                     Authorization: "Bearer {{ result.json.access_token }}"
-    #loop: "{{ hosts }}"
     register: inventory
     with_sequence: start=1 end="{{ (inventory_pagecount.json.total / 50) | round(0,'ceil') | int }}"
-
-    #  - name: Get hosts using JSON query
-    # set_fact:
-    #        hosts: "{{ inventory }}" | json_query('results[*].json.results[*].{fqdn,id}') | join('\n') }}
-
-#  - name: Check hosts
-#    ansible.builtin.debug:
-            # msg: "{{ inventory | json_query('results[*].json.results[*].{fqdn: fqdn, id: id, infrastructure_type: system_profile.infrastructure_type, number_of_cpus: system_profile.number_of_cpus}') | to_json | from_json | json_query('[].join(`,`,[fqdn,id,infrastructure_type,number_of_cpus])') | flatten}}"
-            #        msg: "{{ inventory | json_query('results[*].json.results[*].join(`,`,[fqdn,id,system_profile.infrastructure_type,system_profile.number_of_cpus|string,system_profile.number_of_sockets|string,system_profile.cores_per_socket|string,system_profile.os_release,system_profile,cloud_provider])') | flatten}}"
-            #        msg: "{{ inventory | json_query('results[*].json.results[*].join(`,`,[fqdn,id,system_profile.infrastructure_type,system_profile.number_of_cpus|string])') | flatten}}"
-#            msg: "{{ inventory | json_query('results[*].json.results[*].{fqdn: fqdn, id: id, infrastructure_type: system_profile.infrastructure_type, number_of_cpus: system_profile.number_of_cpus, number_of_sockets: system_profile.number_of_sockets, cores_per_socket: system_profile.cores_per_socket, os_release: system_profile.os_release, cloud_provider: system_profile.cloud_provider}') | flatten }}"
-
-#  - name: Get hosts using JSON query
-#    set_fact:
-#            hosts: "{{ inventory | json_query('results[*].json.results[*].{fqdn: fqdn, id: id, infrastructure_type: system_profile.infrastructure_type, number_of_cpus: system_profile.number_of_cpus, number_of_sockets: system_profile.number_of_sockets, cores_per_socket: system_profile.cores_per_socket, os_release: system_profile.os_release, cloud_provider: system_profile.cloud_provider}') | flatten }}"
 
   - name: Get hosts from JSON
     set_fact:
