@@ -1,0 +1,157 @@
+---
+- hosts: localhost
+  vars:
+        email: true
+        csv_advisor_hits_filename: advisor_hits.csv
+        csv_patch_advisories_filename: patch_advisories.csv
+        csv_patch_systems_filename: patch_systems.csv
+        csv_vulnerability_vulnerabilities_filename: vulnerability_vulnerabilities.csv
+        csv_inventory_filename: inventory.csv
+  
+  tasks:
+  - name: Get service account token
+    ansible.builtin.uri:
+            url: "https://sso.redhat.com/auth/realms/redhat-external/protocol/openid-connect/token"
+            method: POST
+            body_format: form-urlencoded
+            status_code: 200
+            return_content: true
+            headers:
+                Content-Type: "application/x-www-form-urlencoded"
+            body:
+                client_id: "{{ hcc_client_id }}"
+                client_secret: "{{ hcc_client_secret }}"
+                scope: "api.console"
+                grant_type: "client_credentials"
+    register: result
+        
+  - name: Check access token
+    ansible.builtin.debug:
+            msg: "{{ result.json.access_token }}"
+
+  - name: Get advisories hits
+    ansible.builtin.uri:
+            url: "https://console.redhat.com/api/insights/v1/export/hits.csv?impacting=true&rule_status=enabled&sort=-total_risk&limit=20&offset=0"
+            method: GET
+            status_code: 200
+            return_content: true
+            headers:
+                    Accept: "text/csv"
+                    Authorization: "Bearer {{ result.json.access_token }}"
+    register: advisor_hits
+
+  - copy: 
+        dest: "{{ csv_advisor_hits_filename }}"
+        content: "{{ advisor_hits.content }}"
+
+  - name: Get patch advisories
+    ansible.builtin.uri:
+            url: "https://console.redhat.com/api/patch/v3/export/advisories?offset=0"
+            method: GET
+            status_code: 200
+            return_content: true
+            headers:
+                    Accept: "text/csv"
+                    Authorization: "Bearer {{ result.json.access_token }}"
+    register: patch_advisories
+
+  - copy:
+        dest: "{{ csv_patch_advisories_filename }}"
+        content: "{{ patch_advisories.content }}"
+
+  - name: Get patch systems
+    ansible.builtin.uri:
+            url: "https://console.redhat.com/api/patch/v3/export/systems?offset=0&sort=-last_upload&filter%5Bstale%5D=in%3Atrue%2Cfalse"
+            method: GET
+            status_code: 200
+            return_content: true
+            headers:
+                    Accept: "text/csv"
+                    Authorization: "Bearer {{ result.json.access_token }}"
+    register: patch_systems
+
+  - copy:
+        dest: "{{ csv_patch_systems_filename }}"
+        content: "{{ patch_systems.content }}"
+
+  - name: Get vulnerability vulnerabilities
+    ansible.builtin.uri:
+            url: "https://console.redhat.com/api/vulnerability/v1/systems?sort=-updated&data_format=csv&excluded=false&report=true"
+            method: GET
+            status_code: 200
+            return_content: true
+            headers:
+                    Accept: "text/csv"
+                    Authorization: "Bearer {{ result.json.access_token }}"
+    register: vulnerability_vulnerabilities
+
+  - copy:
+        dest: "{{ csv_vulnerability_vulnerabilities_filename }}"
+        content: "{{ vulnerability_vulnerabilities.json.data }}"
+
+
+  - name: Get inventory (paginated - get page count)
+    ansible.builtin.uri:
+            url: "https://console.redhat.com/api/inventory/v1/hosts?page=1&per_page=50&staleness=fresh&staleness=stale&staleness=stale_warning"
+            method: GET
+            status_code: 200
+            return_content: true
+            headers:
+                    Accept: "application/json"
+                    Authorization: "Bearer {{ result.json.access_token }}"
+    register: inventory_pagecount
+
+  - name: Check page count
+    ansible.builtin.debug:
+            msg: "{{ inventory_pagecount.json.total }}"
+
+  - name: Get inventory (paginated)
+    ansible.builtin.uri:
+            url: "https://console.redhat.com/api/inventory/v1/hosts?page={{ item }}&per_page=50&staleness=fresh&staleness=stale&staleness=stale_warning&fields%5Bsystem_profile%5D=infrastructure_type&fields%5Bsystem_profile%5D=number_of_cpus&fields%5Bsystem_profile%5D=number_of_sockets&fields%5Bsystem_profile%5D=cores_per_socket&fields%5Bsystem_profile%5D=os_release&fields%5Bsystem_profile%5D=cloud_provider"
+            method: GET
+            status_code: 200
+            return_content: true
+            headers:
+                    Accept: "application/json"
+                    Authorization: "Bearer {{ result.json.access_token }}"
+    register: inventory
+    with_sequence: start=1 end="{{ (inventory_pagecount.json.total / 50) | round(0,'ceil') | int }}"
+
+  - name: Get hosts from JSON
+    set_fact:
+      hosts: "{{ hosts | default([]) + [{
+        'fqdn': item.fqdn | default(''),
+        'id': item.id | default(''), 
+        'infrastructure_type': item.system_profile.infrastructure_type | default(''), 
+        'number_of_cpus': item.system_profile.number_of_cpus | default(''), 
+        'number_of_sockets': item.system_profile.number_of_sockets | default(''), 
+        'cores_per_socket': item.system_profile.cores_per_socket | default(''), 
+        'os_release': item.system_profile.os_release | default(''), 
+        'cloud_provider': item.system_profile.cloud_provider | default('')}] }}"
+    loop: "{{ inventory.results | map(attribute='json.results') | flatten }}"
+
+  - name: Convert JSON to CSV (create file and insert header)
+    copy:
+      content: "fqdn,id,infrastructure_type,number_of_cpus,number_of_sockets,cores_per_socket,os_release,cloud_provider"
+      dest: "{{ csv_inventory_filename }}"
+
+  - name: Convert JSON to CSV (insert hosts)
+    lineinfile:
+      line: "{{ item.fqdn }},{{ item.id }},{{ item.infrastructure_type }},{{ item.number_of_cpus }},{{ item.number_of_sockets }},{{ item.cores_per_socket }},{{ item.os_release }},{{ item.cloud_provider }}"
+      path: "{{ csv_inventory_filename }}"
+      insertafter: EOF
+    loop: "{{ hosts }}"
+
+  - name: Send report
+    community.general.mail:
+        host: "{{ smtp_host }}"
+        username: "{{ smtp_username }}"
+        password: "{{ smtp_password }}"
+        port: "{{ smtp_port }}"
+        subject: "Red Hat Insights reports from {{ ansible_hostname }}"
+        body: "Reports from Red Hat Insights generated {{ ansible_date_time.date }}"
+        to: "{{ smtp_username }}"
+        from: "{{ smtp_username }}"
+        attach: [ "{{ csv_advisor_hits_filename }}", "{{ csv_patch_advisories_filename }}", "{{ csv_patch_systems_filename }}", "{{ csv_vulnerability_vulnerabilities_filename }}", "{{ csv_inventory_filename }}" ]
+        charset: us-ascii
+    when: email is defined
