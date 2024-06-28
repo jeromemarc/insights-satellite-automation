@@ -63,7 +63,7 @@ kind: job_template
 <% if input('action') == "hostgroup_destroyed.event.foreman" -%>
   - name: Get group id from group name "<%= input('hostgroup_name') %>"
     uri: 
-      url: "https://console.redhat.com/api/inventory/v1/groups?name={{ \"<%= input('hostgroup_name') %>\" | urlencode }}&per_page=50&page=1"
+      url: "https://console.redhat.com/api/inventory/v1/groups?name={{ \"<%= input('hostgroup_name') %>\" | urlencode }}&per_page=100&page=1"
       method: GET
       headers:
         Authorization: "Bearer {{ token.json.access_token }}"
@@ -87,7 +87,7 @@ kind: job_template
 # Note that host_created.event.foreman is probably not going to work as host is not yet registered in Insights
   - name: Get group id from group name "<%= input('hostgroup_name') %>"
     uri: 
-      url: "https://console.redhat.com/api/inventory/v1/groups?name={{ \"<%= input('hostgroup_name') %>\" | urlencode }}&per_page=50&page=1"
+      url: "https://console.redhat.com/api/inventory/v1/groups?name={{ \"<%= input('hostgroup_name') %>\" | urlencode }}&per_page=100&page=1"
       method: GET
       headers:
         Authorization: "Bearer {{ token.json.access_token }}"
@@ -98,7 +98,7 @@ kind: job_template
 
   - name: Get uuid from insights_id "<%= input('insights_id') %>"
     uri: 
-      url: "https://console.redhat.com/api/inventory/v1/hosts?insights_id=<%= input('insights_id') %>&per_page=50&page=1&staleness=fresh&staleness=stale&staleness=stale_warning"
+      url: "https://console.redhat.com/api/inventory/v1/hosts?insights_id=<%= input('insights_id') %>&per_page=100&page=1&staleness=fresh&staleness=stale&staleness=stale_warning"
       method: GET
       headers:
         Authorization: "Bearer {{ token.json.access_token }}"
