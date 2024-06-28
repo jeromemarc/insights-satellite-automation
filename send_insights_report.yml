@@ -92,7 +92,7 @@
 
   - name: Get inventory (paginated - get page count)
     ansible.builtin.uri:
-            url: "https://console.redhat.com/api/inventory/v1/hosts?page=1&per_page=50&staleness=fresh&staleness=stale&staleness=stale_warning"
+            url: "https://console.redhat.com/api/inventory/v1/hosts?page=1&per_page=100&staleness=fresh&staleness=stale&staleness=stale_warning"
             method: GET
             status_code: 200
             return_content: true
@@ -107,7 +107,7 @@
 
   - name: Get inventory (paginated)
     ansible.builtin.uri:
-            url: "https://console.redhat.com/api/inventory/v1/hosts?page={{ item }}&per_page=50&staleness=fresh&staleness=stale&staleness=stale_warning&fields%5Bsystem_profile%5D=infrastructure_type&fields%5Bsystem_profile%5D=number_of_cpus&fields%5Bsystem_profile%5D=number_of_sockets&fields%5Bsystem_profile%5D=cores_per_socket&fields%5Bsystem_profile%5D=os_release&fields%5Bsystem_profile%5D=cloud_provider"
+            url: "https://console.redhat.com/api/inventory/v1/hosts?page={{ item }}&per_page=100&staleness=fresh&staleness=stale&staleness=stale_warning&fields%5Bsystem_profile%5D=infrastructure_type&fields%5Bsystem_profile%5D=number_of_cpus&fields%5Bsystem_profile%5D=number_of_sockets&fields%5Bsystem_profile%5D=cores_per_socket&fields%5Bsystem_profile%5D=os_release&fields%5Bsystem_profile%5D=cloud_provider"
             method: GET
             status_code: 200
             return_content: true
@@ -115,7 +115,7 @@
                     Accept: "application/json"
                     Authorization: "Bearer {{ result.json.access_token }}"
     register: inventory
-    with_sequence: start=1 end="{{ (inventory_pagecount.json.total / 50) | round(0,'ceil') | int }}"
+    with_sequence: start=1 end="{{ (inventory_pagecount.json.total / 100) | round(0,'ceil') | int }}"
 
   - name: Get hosts from JSON
     set_fact:
